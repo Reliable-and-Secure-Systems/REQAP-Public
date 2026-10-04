@@ -69,7 +69,6 @@ By evaluating the MQF approach with a 5% accuracy drop constraint, we demonstrat
 - [Repository Structure](#repository-structure)
 - [FAQ](#faq)
 - [Citation](#citation)
-- [License](#license)
 
 ## Hardware Dependency (Chipyard)
 
@@ -307,7 +306,3 @@ If you use REQAP, our quantization framework, systolic simulator, or hardware de
   url={https://arxiv.org/abs/2609.17555}
 }
 ```
-
-## License
-
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
