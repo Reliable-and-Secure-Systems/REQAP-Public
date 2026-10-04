@@ -1,0 +1,55 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# C / RISC-V Build Artifacts
+*.o
+*.obj
+*.exe
+*.elf
+*.bin
+*.d
+*.out
+*.app
+
+# PyTorch Checkpoints & Large Data
+*.pth
+*.pt
+*.ckpt
+*.h5
+*.pb
+*.onnx
+models/*.pth
+models/*.pt
+checkpoints/
+data/
+datasets/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs & Temporary Files
+*.log
+logs/
+runs/
+wandb/
+*.tmp
+temp/
+tmp/
+scratch/

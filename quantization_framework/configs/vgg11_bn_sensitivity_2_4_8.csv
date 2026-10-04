@@ -1,0 +1,12 @@
+layer,layer_type,baseline_acc,accuracy_2bit,sensitivity_2bit,accuracy_4bit,sensitivity_4bit,accuracy_8bit,sensitivity_8bit
+features.0,QConv2d,93.75,14.06,79.69,82.81,10.94,92.97,0.78
+features.4,QConv2d,93.75,11.72,82.03,80.47,13.28,92.97,0.78
+features.8,QConv2d,93.75,11.72,82.03,75.78,17.97,93.75,0.0
+features.11,QConv2d,93.75,11.72,82.03,90.62,3.12,92.97,0.78
+features.15,QConv2d,93.75,31.25,62.5,94.53,-0.78,93.75,0.0
+features.18,QConv2d,93.75,18.75,75.0,89.06,4.69,93.75,0.0
+features.22,QConv2d,93.75,12.5,81.25,92.97,0.78,93.75,0.0
+features.25,QConv2d,93.75,92.97,0.78,93.75,0.0,93.75,0.0
+classifier.0,QLinear,93.75,92.19,1.56,92.97,0.78,93.75,0.0
+classifier.3,QLinear,93.75,92.19,1.56,92.97,0.78,93.75,0.0
+classifier.6,QLinear,93.75,92.19,1.56,93.75,0.0,93.75,0.0

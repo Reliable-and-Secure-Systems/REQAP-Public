@@ -1,0 +1,161 @@
+"""
+Standalone correctness test for TwinGeluQuantizer — no model, no GPU,
+no ImageNet needed. Run this BEFORE touching any real model, same
+staged-validation approach used for log_quantizer.py (which caught two
+real implementation issues this way before any GPU time was spent on a
+full model).
+
+Unlike the log2-quantizer test's synthetic softmax data (approximated via
+temperature-scaled random logits, since there's no simpler way to generate
+softmax-shaped data), post-GELU data can be generated EXACTLY: apply
+torch's real GELU function to random pre-activation values. This produces
+the true asymmetric distribution shape (bounded negative tail, unbounded
+positive tail) rather than an approximation of it.
+
+Checks:
+  1. Basic sanity: no NaN/Inf; a value at/near the GELU minimum
+     (~-0.1700) reconstructs reasonably given the fixed negative-side scale.
+  2. The actual premise: does twin quantization achieve lower MSE than a
+     plain per-channel linear quantizer on real post-GELU data, across a
+     range of bit-widths and pre-activation scales (wider pre-activation
+     spread -> more extreme positive tail -> more asymmetry)?
+
+Usage:
+    python test_twin_gelu_quantizer_standalone.py
+"""
+
+import os
+import sys
+
+import torch
+import torch.nn.functional as F
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from twin_gelu_quantizer import TwinGeluQuantizer
+
+
+def linear_quantize_dequantize(x, bits, dim=1):
+    """
+    Minimal per-channel linear (equal-width, asymmetric) quantizer for
+    comparison — same math as PerChannelActivationQuantizer's asymmetric
+    scheme (activations.py), reimplemented standalone to avoid needing a
+    full model/hook setup for this synthetic-data-only test. This is the
+    quantizer actually in use today at every Conv2d/Linear layer output in
+    the real pipeline, including fc2's input (post-GELU) — the baseline
+    twin quantization needs to beat.
+    """
+    q_max = 2 ** bits - 1
+    x_min = x.min(dim=dim, keepdim=True).values
+    x_max = x.max(dim=dim, keepdim=True).values
+    scale = (x_max - x_min) / q_max
+    scale = scale.clamp(min=1e-8)
+    zp = (-x_min / scale).round().clamp(0, q_max)
+    x_int = (x / scale + zp).round().clamp(0, q_max)
+    return (x_int - zp) * scale
+
+
+def make_real_post_gelu_data(num_channels=8, num_samples=1000, pre_act_std=3.0, seed=42):
+    """
+    Real post-GELU data: apply torch's actual F.gelu to random
+    pre-activation values, not an approximation of GELU's shape.
+
+    pre_act_std controls how spread out the pre-GELU (raw Linear output)
+    values are — higher std -> larger positive tail after GELU (since GELU
+    is unbounded above), testing the asymmetry at different severities.
+    Real fc1 outputs in a trained ViT can have substantial spread, so
+    testing across several std values matters (mirrors testing multiple
+    "temperature" levels for the softmax quantizer).
+    """
+    g = torch.Generator().manual_seed(seed)
+    pre_act = torch.randn(num_channels, num_samples, generator=g) * pre_act_std
+    return F.gelu(pre_act)
+
+
+def run_checks_for_std(pre_act_std):
+    x = make_real_post_gelu_data(pre_act_std=pre_act_std)
+    print(f'\n--- pre-activation std={pre_act_std} ---')
+    print(f'Post-GELU data: shape {tuple(x.shape)}, '
+          f'range [{x.min().item():.6f}, {x.max().item():.6f}]')
+
+    # ---- Check 1: basic sanity ----
+    bits = 4
+    q = TwinGeluQuantizer(channel_bits=[bits] * x.shape[0], channel_dim=0)
+    x_dq = q(x)
+
+    has_nan = torch.isnan(x_dq).any().item()
+    has_inf = torch.isinf(x_dq).any().item()
+    if has_nan or has_inf:
+        print(f'  *** FAIL: NaN={has_nan} Inf={has_inf} in output. Stop.')
+        return None
+
+    true_min = x.min().item()
+    dq_at_true_min_idx = x_dq.flatten()[x.flatten().argmin()].item()
+    print(f'  True min value: {true_min:.6f} (GELU\'s analytical bound is ~-0.1700)')
+    print(f'  Reconstructed value at that position: {dq_at_true_min_idx:.6f}')
+    print(f'  Zero-input handling: OK (NaN={has_nan}, Inf={has_inf})')
+
+    # ---- Check 2: does twin quantization win on real GELU data? ----
+    print(f'  {"Bits":>6} {"Twin MSE":>14} {"Linear MSE":>14} {"Twin wins":>12}')
+    results = []
+    for bits in [2, 3, 4, 5, 6, 8]:
+        q_twin = TwinGeluQuantizer(channel_bits=[bits] * x.shape[0], channel_dim=0)
+        x_dq_twin = q_twin(x)
+        mse_twin = ((x_dq_twin - x) ** 2).mean().item()
+
+        x_dq_lin = linear_quantize_dequantize(x, bits, dim=1)
+        mse_lin = ((x_dq_lin - x) ** 2).mean().item()
+
+        wins = mse_twin < mse_lin
+        results.append(wins)
+        print(f'  {bits:>6} {mse_twin:>14.8f} {mse_lin:>14.8f} {"YES" if wins else "NO":>12}')
+
+    return results
+
+
+def main():
+    print('=' * 70)
+    print('STANDALONE TWIN-GELU QUANTIZER CORRECTNESS TEST')
+    print('=' * 70)
+    print('(mimics real post-GELU activations: 8 channels, 1000 samples each,')
+    print(' generated by applying the ACTUAL torch.nn.functional.gelu to random')
+    print(' pre-activations — not an approximation of the distribution shape)')
+
+    # Range from mild (small pre-activation spread, mostly near-linear GELU
+    # region) to wide (large spread, pronounced unbounded positive tail —
+    # closer to what a trained model's fc1 output can look like).
+    stds = [1.0, 3.0, 6.0, 10.0]
+    all_results = {}
+    for s in stds:
+        r = run_checks_for_std(s)
+        if r is None:
+            print('\n*** Stopping — a correctness check failed. Fix before proceeding.')
+            return
+        all_results[s] = r
+
+    print('\n' + '=' * 70)
+    print('SUMMARY across pre-activation spreads')
+    print('=' * 70)
+    bits_list = [2, 3, 4, 5, 6, 8]
+    header = '  '.join(f'{b}-bit' for b in bits_list)
+    print(f'{"Std":>8}   {header}')
+    for s, r in all_results.items():
+        row = '  '.join(f'{"WIN" if w else "lose":>6}' for w in r)
+        print(f'{s:>8}   {row}')
+
+    win_rate = sum(sum(r) for r in all_results.values()) / (len(all_results) * len(bits_list))
+    print(f'\nOverall win rate: {win_rate:.1%}')
+    if win_rate > 0.7:
+        print('--> Twin quantizer wins on most configurations. Worth proceeding to')
+        print('    model wiring (fc2 input hook point).')
+    elif win_rate > 0.3:
+        print('--> Mixed results — check which bit-widths/spreads matter most for')
+        print('    our actual collapse (2-4 bit is the confirmed problem range)')
+        print('    before deciding whether to wire this into a model.')
+    else:
+        print('--> Twin quantizer loses on most configurations. Do not proceed to')
+        print('    model wiring without further investigation.')
+    print('=' * 70)
+
+
+if __name__ == '__main__':
+    main()

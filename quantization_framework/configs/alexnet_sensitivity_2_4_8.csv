@@ -1,0 +1,9 @@
+layer,layer_type,baseline_acc,accuracy_2bit,sensitivity_2bit,accuracy_4bit,sensitivity_4bit,accuracy_8bit,sensitivity_8bit
+conv1.0,Conv2d,9.1796875,9.18,0.0,9.18,0.0,9.18,0.0
+conv2.0,Conv2d,9.1796875,9.18,0.0,9.18,0.0,9.18,0.0
+conv3.0,Conv2d,9.1796875,9.18,0.0,9.18,0.0,9.18,0.0
+conv4.0,Conv2d,9.1796875,9.18,0.0,9.18,0.0,9.18,0.0
+conv5.0,Conv2d,9.1796875,9.18,0.0,9.18,0.0,9.18,0.0
+fc1,Linear,9.1796875,9.18,0.0,9.18,0.0,9.18,0.0
+fc2,Linear,9.1796875,9.18,0.0,9.18,0.0,9.18,0.0
+fc3,Linear,9.1796875,9.18,0.0,9.18,0.0,9.18,0.0
