@@ -1,27 +1,37 @@
-# REQAP (Reliable and Efficient Quantization-Aware Packing for Deep Neural Networks)
+# REQAP: Resilient Weight Packing and Quantization for Edge DNN Acceleration
 
+[![arXiv](https://img.shields.io/badge/arXiv-2609.17555-b31b1b.svg)](https://arxiv.org/abs/2609.17555)
+[![PDF](https://img.shields.io/badge/Paper-PDF-red.svg)](https://arxiv.org/pdf/2609.17555)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)](https://pytorch.org/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-orange.svg)](https://pytorch.org/)
 
-**A novel neural network compression and execution framework that combines granular sensitivity-driven quantization with Safe-FFD hardware register packing for ultra-efficient RISC-V edge inference.**
+> **Official implementation for the paper:**  
+> **"REQAP: Resilient Weight Packing and Quantization for Edge DNN Acceleration"**  
+> **Authors:** Mahdi Taheri, Samira Nazari, Mubassher Ansari, Ali Azarpeyvand, Mohsen Afsharchi, Maksim Jenihhin, Christian Herglotz  
+> 📄 **arXiv:** [https://arxiv.org/abs/2609.17555](https://arxiv.org/abs/2609.17555) | 📥 **PDF:** [https://arxiv.org/pdf/2609.17555](https://arxiv.org/pdf/2609.17555)
+
+---
+
+**A novel neural network compression, packing, and execution framework that combines granular sensitivity-driven quantization with Safe-FFD hardware register packing and fault-tolerant bit-level protection for ultra-efficient RISC-V edge inference.**
 
 ## Overview
 
-This repository contains the complete end-to-end pipeline for the MQF (Multi-Quantization Framework), which introduces:
+This repository contains the complete end-to-end pipeline for the REQAP framework, which introduces:
 
 - **Filter-level sensitivity analysis** to assign optimal granular bit-widths (supports arbitrary 2-8 bit precisions)
 - **Joint Weight and Activation (W=A) co-optimization** targeting exact hardware register sizes
 - **Safe-FFD bin-packing algorithm** to maximize memory density in 16-bit hardware registers
 - **Bare-metal RISC-V C/ASM deployment** utilizing SIMD Within A Register (SWAR) arithmetic
+- **Systolic Array Simulator** for bit-exact hardware-level verification and memory fetch analysis
 
 ## CNN Architecture & Code Map
 
 To understand the end-to-end flow from high-level PyTorch down to bare-metal C execution on the VC707 FPGA, please refer to the following code map:
 
-1. **Unquantified FP32 Baseline (Python)**: [`quantization_framework/models/vgg.py`](file:///C:/Mubashir-BTU/Thesis/Codes/Danial/REQAP-DNN/quantization_framework/models/vgg.py) - This file contains the standard, pure 32-bit floating-point PyTorch implementation of the VGG-11 architecture.
-2. **MQF Multi-precision Quantization (Python)**: [`quantization_framework/quantize_models.py`](file:///C:/Mubashir-BTU/Thesis/Codes/Danial/REQAP-DNN/quantization_framework/quantize_models.py) - This script applies the MQF algorithm to the baseline model, determining granular bit-widths and simulating the accuracy impact.
-3. **Baseline 8-bit Execution (C)**: `run_full_vgg11_baseline_forward_pass()` in [`vc707_deployment/main_vc707_vgg11.c`](file:///C:/Mubashir-BTU/Thesis/Codes/Danial/REQAP-DNN/vc707_deployment/main_vc707_vgg11.c) - The standard 8-bit integer inference implementation acting as our control group.
-4. **MQF Multi-precision Execution (C)**: `run_full_vgg11_packed_forward_pass()` in [`vc707_deployment/main_vc707_vgg11.c`](file:///C:/Mubashir-BTU/Thesis/Codes/Danial/REQAP-DNN/vc707_deployment/main_vc707_vgg11.c) - The optimized deployment that uses the custom SWAR MAC kernels ([`swar_mac.c`](file:///C:/Mubashir-BTU/Thesis/Codes/Danial/REQAP-DNN/risc_v_backend/firmware/swar_mac.c)) to multiply the packed multi-precision weights on the FPGA.
+1. **Unquantized FP32 Baseline (Python)**: [`quantization_framework/models/vgg.py`](quantization_framework/models/vgg.py) - Standard 32-bit floating-point PyTorch implementation of VGG-11.
+2. **REQAP Multi-precision Quantization (Python)**: [`quantization_framework/experiments/run_full_mixed_precision_study.py`](quantization_framework/experiments/run_full_mixed_precision_study.py) - Quantization sensitivity engine assigning granular bit-widths.
+3. **Baseline 8-bit Execution (C)**: `run_full_vgg11_baseline_forward_pass()` in [`vc707_deployment/main_vc707_vgg11.c`](vc707_deployment/main_vc707_vgg11.c) - The standard 8-bit integer inference control implementation.
+4. **REQAP Multi-precision Execution (C)**: `run_full_vgg11_packed_forward_pass()` in [`vc707_deployment/main_vc707_vgg11.c`](vc707_deployment/main_vc707_vgg11.c) - Packed multi-precision execution using SWAR MAC kernels ([`swar_mac.c`](risc_v_backend/firmware/swar_mac.c)).
 
 ### Network Layer Structures
 Our framework currently supports the heterogeneous quantization of the following three core visual architectures:
@@ -283,3 +293,21 @@ REQAP/
 ```
 
 ---
+
+## Citation
+
+If you use REQAP, our quantization framework, systolic simulator, or hardware demo in your research, please cite our paper:
+
+```bibtex
+@article{taheri2026reqap,
+  title={{REQAP}: Resilient Weight Packing and Quantization for Edge {DNN} Acceleration},
+  author={Taheri, Mahdi and Nazari, Samira and Ansari, Mubassher and Azarpeyvand, Ali and Afsharchi, Mohsen and Jenihhin, Maksim and Herglotz, Christian},
+  journal={arXiv preprint arXiv:2609.17555},
+  year={2026},
+  url={https://arxiv.org/abs/2609.17555}
+}
+```
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
