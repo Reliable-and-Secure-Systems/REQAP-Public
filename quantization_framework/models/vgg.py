@@ -59,8 +59,13 @@ def make_layers(cfg, batch_norm=False):
 
 cfgs = {
     'A': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'], # VGG11
+    'D': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'], # VGG16
 }
 
 def vgg11_bn(num_classes=10):
     """VGG 11-layer model (configuration "A") with batch normalization"""
     return VGG(make_layers(cfgs['A'], batch_norm=True), num_classes=num_classes)
+
+def vgg16_bn(num_classes=10):
+    """VGG 16-layer model (configuration "D") with batch normalization"""
+    return VGG(make_layers(cfgs['D'], batch_norm=True), num_classes=num_classes)

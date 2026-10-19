@@ -36,7 +36,7 @@ To understand the end-to-end flow from high-level PyTorch down to bare-metal C e
 ### Network Layer Structures
 Our framework currently supports the heterogeneous quantization of the following three core visual architectures:
 
-- **VGG-11**: `[Input: 3x32x32]` → `[Conv2D (64) + ReLU + MaxPool]` → `[Conv2D (128) + ReLU + MaxPool]` → `[2x Conv2D (256) + ReLU + MaxPool]` → `[2x Conv2D (512) + ReLU + MaxPool]` → `[2x Conv2D (512) + ReLU + MaxPool]` → `[FC (4096)]` → `[FC (4096)]` → `[FC (10)]`
+- **VGG-11 / VGG-16**: `[Input: 3x32x32]` → Conv2D feature extraction stacks with BatchNorm + ReLU + MaxPool → `[FC (4096)]` → `[FC (4096)]` → `[FC (10)]` (supports both 11-layer and 16-layer configurations in `quantization_framework/models/vgg.py`).
 - **ResNet-18**: `[Input: 3x32x32]` → `[Conv2D (64) + BatchNorm + ReLU]` → `[4x BasicBlock layers with Skip Connections (64 → 128 → 256 → 512)]` → `[AdaptiveAvgPool2D]` → `[FC (10)]`
 - **AlexNet**: `[Input: 1x28x28]` → `[Conv2D (64) + ReLU + MaxPool]` → `[Conv2D (192) + ReLU + MaxPool]` → `[3x Conv2D (384/256/256) + ReLU + MaxPool]` → `[AdaptiveAvgPool2D]` → `[FC (4096)]` → `[FC (4096)]` → `[FC (10)]`
 
@@ -135,7 +135,11 @@ Ensure your trained models are stored in the root `models/` folder. You can down
 ### 2. Generate MQF Configurations
 ```bash
 cd quantization_framework
-python experiments/run_full_mixed_precision_study.py --model vgg11
+python experiments/run_full_mixed_precision_study.py \
+    --model vgg11_bn \
+    --checkpoint ../models/vgg11_cifar10_fp32.pth \
+    --dataset cifar10 \
+    --output-dir results/vgg11_mixed_precision
 ```
 
 ### 3. Compile and Run on RISC-V QEMU
@@ -172,10 +176,11 @@ The `quantization_framework` directory handles the Python-based Post-Training Qu
 ```bash
 cd quantization_framework
 
-# Run the greedy search and sensitivity analysis
+# Run the greedy search with precomputed sensitivity profile
 python experiments/joint_search.py \
-    --model vgg11 \
-    --checkpoint ../models/vgg-8bit.pth \
+    --model vgg11_bn \
+    --checkpoint ../models/vgg11_cifar10_fp32.pth \
+    --profile configs/vgg11_bn_sensitivity_2_4_8.csv \
     --dataset cifar10 \
     --target-drop 5.0
 ```
