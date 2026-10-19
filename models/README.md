@@ -18,8 +18,8 @@ Please download the checkpoints from Google Drive and place them directly in thi
 | Model | Dataset | Expected Checkpoint Filename |
 |---|---|---|
 | **VGG-11** | CIFAR-10 | `vgg11_cifar10_fp32.pth` |
-| **VGG-16** | CIFAR-10 | `vgg16_cifar10_fp32.pth` |
 | **ResNet-18** | CIFAR-10 | `resnet18_cifar10_fp32.pth` |
 | **AlexNet** | Fashion-MNIST | `alexnet_fashionmnist_fp32.pth` |
-| **MobileNetV2** | CIFAR-10 | `mobilenet_cifar10_fp32.pth` |
-| **Swin-T** | CIFAR-100 | `swin_cifar100_fp32.pth` / `best_swin_model_cifar_changed.pth` |
+| **MobileNetV2** | CIFAR-10 | `mobilenet_cifar10_fp32.pth` / `mobilenet_qat_weights.pth` |
+| **Swin-T** | CIFAR-100 | `swin_model_cifar.pth` |
+

@@ -52,10 +52,6 @@ def load_model(model_name, checkpoint_path=None, num_classes=10):
         from .vgg import vgg11_bn
         model = vgg11_bn(num_classes=num_classes)
         default_ckpt = os.path.join(MODELS_DIR, 'vgg11_cifar10_fp32.pth')
-    elif model_name in ('vgg16_bn', 'vgg16'):
-        from .vgg import vgg16_bn
-        model = vgg16_bn(num_classes=num_classes)
-        default_ckpt = os.path.join(MODELS_DIR, 'vgg16_cifar10_fp32.pth')
     elif model_name == 'levit':
         from .levit import levit_cifar
         model = levit_cifar(num_classes=num_classes)
